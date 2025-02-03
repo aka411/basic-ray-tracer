@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head><title>Basic Ray tracer(using worker)</title></head>
+  <body>
+    <link rel="stylesheet" type="text/css" href="./style.css">
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script src="./lib/Math.js"></script>
+    <script src="./lib/Material.js"></script>
+    <script src="./lib/Hittable.js"></script>
+    <script src="./lib/Ray.js"></script>
+    <script src="./lib/Camera.js"></script>
+
+
+
+
+    <script>
+
+
+    const canvas=document.getElementById("canvas");
+    const ctx=canvas.getContext('2d');
+
+
+
+
+  let world=new Hittable_list();
+
+
+
+
+const material_ground = new Lambertian(new Vec3(83/256,104/256,120/256));
+
+const material_center = new Lambertian(new Vec3(0.7, 0.3, 0.4));
+const material_ball = new Lambertian(new Vec3(0.4, 0.4, 0.8));
+const material_left = new Metal(new Vec3(0.8, 0.8, 0.8),0.3);
+const material_top = new Dielectric(1.5);
+const material_right = new Metal(new Vec3(0.4, 0.4, 0.8),1.0);
+
+world.Add(new Sphere(new Vec3( 0.0, -100.5, -1.0), 100.0, material_ground));
+world.Add(new Sphere(new Vec3( 0.0, 0.0, -1.2), 0.5, material_center));
+world.Add(new Sphere(new Vec3(-1.0, 0.0, -1.2), 0.5, material_top));
+world.Add(new Sphere(new Vec3(0.0, 0.35, -0.5), 0.15, material_top));
+world.Add(new Sphere(new Vec3( 1.0, 0.0, -1.2), 0.5, material_left));
+
+world.Add(new Sphere(new Vec3( 0.6, -0.4, -0.6), 0.1, material_ball));
+
+world.Add(new Sphere(new Vec3( 0.0, 0.0, -1.4), 0.4, material_top));
+
+
+for (let i=0;i<20;i++){
+    const radius = Math.random()*0.24+0.01;
+    const s = Math.sign((Math.random()*(Math.random()-0.5)));
+    const x= s*Math.random()*2+s*0.3+Math.random()*s;
+    const y= 0+radius-0.5;
+    const z=-Math.random()-0.13;
+
+     function getMaterial(){
+           const v=Math.random();
+           const color=new Vec3(Math.random(), Math.random(),Math.random());
+           if(1>v & v>0.7){
+               return new Lambertian(color) ;
+           }
+          else if(0.7>v & v >0.3){
+                  return new Metal(color,Math.random());
+           }
+
+          else {
+                  return new Dielectric(Math.random());
+           }
+    }
+
+    const mat=getMaterial();
+
+  world.Add(new Sphere(new Vec3(x,y,z),radius,mat))  ;
+
+}
+
+
+
+
+
+
+
+    function drawToCanvas(pixelData, offSetX, offSetY, lengthX, lengthY) {
+
+
+           let r = 0, b = 0, g = 0;
+
+           for (let j = 0; j < lengthY; j++) {
+
+      for (let i = 0; i < lengthX; i++) {
+
+        const index = j * (lengthX) + i;
+          r = pixelData[index][0];
+          g = pixelData[index][1];
+          b = pixelData[index][2];
+
+     ctx.fillStyle = "rgba("+r*256+","+g*256+","+b*256+","+100+")";
+     ctx.fillRect(offSetX+i, canvas.height-(offSetY+j) ,1,1);//flip Y-axis
+
+
+
+
+
+
+
+      }
+
+
+ }
+
+
+
+    }
+
+
+
+
+
+
+    const workerCount=32;
+    const samplesPerPixel = 150;
+
+    for (let i=0; i < workerCount ; i++ ) {
+
+           let worker =new Worker("./lib/workertask.js");
+
+           worker.postMessage({
+               'id'  : i,
+              'maxWorkers' : workerCount,
+              'world' : world,
+              'canvasHeight': canvas.height,
+              'canvasWidth' : canvas.width,
+              'samplesPerPixel':samplesPerPixel,
+
+                  });
+
+
+           worker.onerror=function(e){
+
+                  console.log('filename: ', e.filename, ' lineno: ', e.lineno, ' error: ', e.message);
+};
+
+
+
+
+           worker.onmessage=function(e){
+
+
+
+
+                  //(offSetX, offSetY, lengthX, lengthY)
+
+                 drawToCanvas(e.data.pixelData, e.data.offSetX, e.data.offSetY,
+                 e.data.lengthX, e.data.lengthY) ;
+
+
+       worker.terminate();
+
+           }
+
+
+    }
+
+
+
+
+
+    console.log("finished");
+
+
+
+    </script>
+
+  </body>
+</html>

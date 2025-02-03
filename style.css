@@ -1,0 +1,8 @@
+body{
+  display: grid;
+  background-color : #4A505E;
+}
+
+canvas{
+  place-self: center;
+}
