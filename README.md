@@ -1,2 +1,2 @@
 # basic-ray-tracer
-![](RenderResult.gif)
+![Image being Rendered](RenderResult.gif)
